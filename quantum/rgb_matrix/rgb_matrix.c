@@ -310,10 +310,16 @@ static void rgb_task_timers(void) {
 
     // Update double buffer last hit timers
 #ifdef RGB_MATRIX_KEYREACTIVE_ENABLED
-    uint8_t count = last_hit_buffer.count;
-    for (uint8_t i = 0; i < count; ++i) {
-        if (UINT16_MAX - deltaTime < last_hit_buffer.tick[i]) {
+    // did a fix to properly remove expired key hits, at the expense of a few bytes of ROM
+    //
+    for (uint8_t i = 0; i < last_hit_buffer.count; ++i) {
+        if (last_hit_buffer.tick[i] > 60000 / rgb_matrix_config.speed + 80) {
             last_hit_buffer.count--;
+            memmove(&last_hit_buffer.x[i], &last_hit_buffer.x[i + 1], LED_HITS_TO_REMEMBER -   - 1);
+            memmove(&last_hit_buffer.y[i], &last_hit_buffer.y[i + 1], LED_HITS_TO_REMEMBER - i - 1);
+            memmove(&last_hit_buffer.tick[i], &last_hit_buffer.tick[i + 1], (LED_HITS_TO_REMEMBER - i - 1) * 2); // 16 bit
+            memmove(&last_hit_buffer.index[i], &last_hit_buffer.index[i + 1], LED_HITS_TO_REMEMBER - i - 1);
+            i--;
             continue;
         }
         last_hit_buffer.tick[i] += deltaTime;
